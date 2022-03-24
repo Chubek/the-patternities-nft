@@ -13,3 +13,7 @@ https://github.com/Chubek/rusty-random-pattern-generator
 ![](/images/9922-pattern.png)
 ![](/images/13446-pattern.png)
 ![](/images/2242-pattern.png)
+
+# State:
+
+The code is done, needs to be added to runtime properly and be tested! 
