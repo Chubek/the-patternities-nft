@@ -14,14 +14,12 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use frame_support::{
 		sp_runtime::traits::Hash,
-		traits::{ Randomness, Currency, tokens::ExistenceRequirement },
+		traits::{ Currency, tokens::ExistenceRequirement },
 		transactional
 	};
 	use enocoro128v2::Enocoro128;
 	use nanorand::{Rng, WyRand};
-	
-	#[cfg(feature = "std")]
-	use frame_support::serde::{Deserialize, Serialize};
+
 
 	type AccountOf<T> = <T as frame_system::Config>::AccountId; 
 	type BalanceOf<T> =
@@ -30,7 +28,7 @@ pub mod pallet {
 	#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 	#[scale_info(skip_type_params(T))]
 	#[codec(mel_bound())]
-	struct PatternSeed<T: Config> {
+	pub struct PatternSeed<T: Config> {
 		pub key: [u8; 16],
 		pub iv: [u8; 8],
 		pub cipher: BoundedVec<u8, T::MaxByteCipher>,
@@ -72,23 +70,23 @@ pub mod pallet {
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
-		pub patternity_genesis: Vec<(T::AccountId, AccountOf<T>)>,
+		pub patternity_genesis: Vec<(T::AccountId, Option<BalanceOf<T>>)>,
 	}
 
 
 
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
-			fn default() -> GenesisConfig<T> {
-				GenesisConfig { patternity_genesis: vec![] }
-			}
+		fn default() -> GenesisConfig<T> {
+			GenesisConfig { patternity_genesis: vec![] }
+		}
 	}
 
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
 			for (owner, price) in &self.patternity_genesis {
-				let _ = <Pallet<T>>::mint(owner, price);
+				let _ = <Pallet<T>>::mint(owner, price.clone());
 			}
 		}
 	}
@@ -119,14 +117,13 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {	
 		#[pallet::weight(100)]
-		pub fn create_pattern(origin: OriginFor<T>, price: AccountOf<T>) -> DispatchResult {
+		pub fn create_pattern(origin: OriginFor<T>, price: Option<BalanceOf<T>>) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
 			let pattern_obj = Self::mint(&sender, price);
 
 			let pattern_id = T::Hashing::hash_of(&pattern_obj);
 
-			log::info!("A pattern was bought with ID: {:?}.", pattern_id);
 
 			<PatternityOwned<T>>::try_mutate(&sender, |patt_vec| {
 				patt_vec.try_push(pattern_id)
@@ -147,20 +144,20 @@ pub mod pallet {
 		#[pallet::weight(100)]
 		pub fn set_price(
 			origin: OriginFor<T>,
-			Pattern_id: T::Hash,
+			pattern_id: T::Hash,
 			new_price: Option<BalanceOf<T>>
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
-			ensure!(Self::is_pattern_owner(&Pattern_id, &sender)?, <Error<T>>::NotPatternOwner);
+			ensure!(Self::is_pattern_owner(&pattern_id, &sender)?, <Error<T>>::NotPatternOwner);
 
-			let mut Pattern = Self::patternity(&Pattern_id).ok_or(<Error<T>>::PatternNotExist)?;
+			let mut pattern = Self::patternity(&pattern_id).ok_or(<Error<T>>::PatternNotExist)?;
 
-			Pattern.price = new_price.clone();
-			<Patternity<T>>::insert(&Pattern_id, Pattern);
+			pattern.price = new_price.clone();
+			<Patternity<T>>::insert(&pattern_id, pattern);
 
 			// Deposit a "PriceSet" event.
-			Self::deposit_event(Event::PriceSet(sender, Pattern_id, new_price));
+			Self::deposit_event(Event::PriceSet(sender, pattern_id, new_price));
 
 			Ok(())
 		}
@@ -170,27 +167,27 @@ pub mod pallet {
 		pub fn transfer(
 			origin: OriginFor<T>,
 			to: T::AccountId,
-			Pattern_id: T::Hash
+			pattern_id: T::Hash
 		) -> DispatchResult {
 			let from = ensure_signed(origin)?;
 
-			ensure!(Self::is_pattern_owner(&Pattern_id, &from)?, <Error<T>>::NotPatternOwner);
+			ensure!(Self::is_pattern_owner(&pattern_id, &from)?, <Error<T>>::NotPatternOwner);
 
 			ensure!(from != to, <Error<T>>::TransferToSelf);
 
 			let to_owned = <PatternityOwned<T>>::get(&to);
 			ensure!((to_owned.len() as u32) < T::MaxPatternityOwned::get(), <Error<T>>::ExceedMaxPatternityOwned);
 
-			Self::transfer_pattern_to(&Pattern_id, &to)?;
+			Self::transfer_pattern_to(&pattern_id, &to)?;
 
-			Self::deposit_event(Event::Transferred(from, to, Pattern_id));
+			Self::deposit_event(Event::Transferred(from, to, pattern_id));
 
 			Ok(())
 		}
 
 		#[transactional]
 		#[pallet::weight(100)]
-		pub fn buy_Pattern(
+		pub fn buy_pattern(
 			origin: OriginFor<T>,
 			pattern_id: T::Hash,
 			bid_price: BalanceOf<T>
@@ -275,7 +272,7 @@ pub mod pallet {
 		}
 
 		fn cipher_code(key: [u8; 16], iv: [u8; 8]) -> [u8; 2000] {
-			let text_base = String::from("
+			let mut text_base = String::from("
 					use tiny_skia::*;
 					use rand::prelude::*;
 					use rand_chacha::ChaCha20Rng;
@@ -363,14 +360,14 @@ pub mod pallet {
 
 			let cipher_bv: BoundedVec<u8, T::MaxByteCipher> = BoundedVec::try_from(cipher.to_vec()).unwrap();
 
-			PatternSeed::<T>{key, iv, cipher: cipher_bv, owner: account_id, price: price}
+			PatternSeed::<T>{key, iv, cipher: cipher_bv, owner: account_id.clone(), price: price}
 			
 		}
 
 
 		pub fn is_pattern_owner(pattern_id: &T::Hash, acct: &T::AccountId) -> Result<bool, Error<T>> {
 			match Self::patternity(pattern_id) {
-				Some(patternity) => Ok(kitty.owner == *acct),
+				Some(pattern) => Ok(pattern.owner == *acct),
 				None => Err(<Error<T>>::PatternNotExist)
 			}
 		}
