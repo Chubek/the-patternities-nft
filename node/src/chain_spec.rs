@@ -1,5 +1,5 @@
 use node_patternities-node_runtime::{
-	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig,
+	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig, SubstratePatternitiesConfig,
 	SystemConfig, WASM_BINARY,
 };
 use sc_service::ChainType;
@@ -133,6 +133,9 @@ fn testnet_genesis(
 	_enable_println: bool,
 ) -> GenesisConfig {
 	GenesisConfig {
+		substrate_kitties: SubstratePatternitiesConfig {
+			pattenirt_genesis: vec![],
+		},
 		system: SystemConfig {
 			// Add Wasm runtime to storage.
 			code: wasm_binary.to_vec(),
@@ -151,6 +154,7 @@ fn testnet_genesis(
 			// Assign network admin rights.
 			key: Some(root_key),
 		},
+
 		transaction_payment: Default::default(),
 	}
 }

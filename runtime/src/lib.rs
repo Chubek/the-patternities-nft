@@ -266,9 +266,18 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
+
+parameter_types! {             
+    pub const MaxPatternityOwned: u32 = 9999;
+	pub const MaxByteCipher: u32 = 10000;
+}
+
 /// Configure the pallet-the-patternities in pallets/the-patternities.
 impl pallet_the-patternities::Config for Runtime {
 	type Event = Event;
+	type Currency = Balances;
+	type MaxPatternityOwned = MaxPatternityOwned;
+	type MaxByteCipher = MaxByteCipher;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -287,7 +296,7 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment,
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
-		TemplateModule: pallet_the-patternities,
+		ThePatternities: pallet_the-patternities,
 	}
 );
 
