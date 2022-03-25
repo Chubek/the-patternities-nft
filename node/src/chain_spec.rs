@@ -1,5 +1,5 @@
-use node_patternities-node_runtime::{
-	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig, SubstratePatternitiesConfig,
+use node_patternities_node_runtime::{
+	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig, ThePatternitiesConfig,
 	SystemConfig, WASM_BINARY,
 };
 use sc_service::ChainType;
@@ -133,8 +133,8 @@ fn testnet_genesis(
 	_enable_println: bool,
 ) -> GenesisConfig {
 	GenesisConfig {
-		substrate_kitties: SubstratePatternitiesConfig {
-			pattenirt_genesis: vec![],
+		the_patternities: ThePatternitiesConfig {
+			the_patternities: vec![],
 		},
 		system: SystemConfig {
 			// Add Wasm runtime to storage.

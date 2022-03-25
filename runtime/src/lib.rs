@@ -41,7 +41,7 @@ pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
 /// Import the template pallet.
-pub use pallet_the-patternities;
+pub use pallet_the_patternities;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -273,7 +273,7 @@ parameter_types! {
 }
 
 /// Configure the pallet-the-patternities in pallets/the-patternities.
-impl pallet_the-patternities::Config for Runtime {
+impl pallet_the_patternities::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type MaxPatternityOwned = MaxPatternityOwned;
@@ -296,7 +296,7 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment,
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
-		ThePatternities: pallet_the-patternities,
+		ThePatternities: pallet_the_patternities,
 	}
 );
 

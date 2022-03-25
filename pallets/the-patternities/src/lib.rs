@@ -70,7 +70,7 @@ pub mod pallet {
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
-		pub patternity_genesis: Vec<(T::AccountId, Option<BalanceOf<T>>)>,
+		pub the_patternities: Vec<(T::AccountId, Option<BalanceOf<T>>)>,
 	}
 
 
@@ -78,14 +78,14 @@ pub mod pallet {
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> GenesisConfig<T> {
-			GenesisConfig { patternity_genesis: vec![] }
+			GenesisConfig { the_patternities: vec![] }
 		}
 	}
 
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
-			for (owner, price) in &self.patternity_genesis {
+			for (owner, price) in &self.the_patternities {
 				let _ = <Pallet<T>>::mint(owner, price.clone());
 			}
 		}
