@@ -324,8 +324,8 @@ pub mod pallet {
 			ret
 		}
 
-		fn cipher_code(key: [u8; 16], iv: [u8; 8]) -> Vec<u8> {
-			let text_base = "
+		fn cipher_code(key: [u8; 16], iv: [u8; 8]) -> [u8; 2100] {
+			let mut text_base = "
 					use tiny_skia::*;
 					use rand::prelude::*;
 					use rand_chacha::ChaCha20Rng;
@@ -390,7 +390,13 @@ pub mod pallet {
 						pixmap
 					}";
 
-			let mut msg: Vec<u8> = text_base.as_bytes().to_vec();
+			let size_diff = 2100usize - text_base.len();
+
+			for _ in 0..size_diff {
+				text_base = format!("{}{}", text_base, "\x00");
+			}
+
+			let mut msg: [u8; 2100] = text_base.as_bytes().to_vec().try_into().unwrap();
 
 			Enocoro128::apply_keystream_static(&key, &iv, &mut msg);
 
@@ -420,14 +426,13 @@ pub mod pallet {
 		}
 
 		#[transactional]
-		pub fn transfer_pattern_to(kitty_id: &T::Hash, to: &T::AccountId) -> Result<(), Error<T>> {
-			let mut kitty = Self::patternity(&kitty_id).ok_or(<Error<T>>::PatternNotExist)?;
+		pub fn transfer_pattern_to(patternity_id: &T::Hash, to: &T::AccountId) -> Result<(), Error<T>> {
+			let mut patternity = Self::patternity(&patternity_id).ok_or(<Error<T>>::PatternNotExist)?;
 
-			let prev_owner = kitty.owner.clone();
+			let prev_owner = patternity.owner.clone();
 
-			// Remove `kitty_id` from the KittyOwned vector of `prev_kitty_owner`
 			<PatternityOwned<T>>::try_mutate(&prev_owner, |owned| {
-				if let Some(ind) = owned.iter().position(|&id| id == *kitty_id) {
+				if let Some(ind) = owned.iter().position(|&id| id == *patternity_id) {
 					owned.swap_remove(ind);
 					return Ok(());
 				}
@@ -435,15 +440,13 @@ pub mod pallet {
 			})
 			.map_err(|_| <Error<T>>::PatternityOwned)?;
 
-			// Update the kitty owner
-			kitty.owner = to.clone();
-			// Reset the ask price so the kitty is not for sale until `set_price()` is called
-			// by the current owner.
-			kitty.price = None;
+			patternity.owner = to.clone();
 
-			<Patternity<T>>::insert(kitty_id, kitty);
+			patternity.price = None;
 
-			<PatternityOwned<T>>::try_mutate(to, |vec| vec.try_push(*kitty_id))
+			<Patternity<T>>::insert(patternity_id, patternity);
+
+			<PatternityOwned<T>>::try_mutate(to, |vec| vec.try_push(*patternity_id))
 				.map_err(|_| <Error<T>>::ExceedMaxPatternityOwned)?;
 
 			Ok(())
