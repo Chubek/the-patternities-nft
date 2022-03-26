@@ -14,6 +14,12 @@ https://github.com/Chubek/rusty-random-pattern-generator
 ![](/images/224221131242-pattern.png)
 ![](/images/image.png)
 
-# State:
+# How to Run on a Local Node:
 
-The code is done, needs to be added to runtime properly and be tested! 
+1. Install Rust and Cargo.
+2. `cargo build --release`.
+3. `cd` to the `build/release` folder and run the application.
+4. Head over to Polkadot website, connect to local runtime, and mint one! Then use the `key` as the seed in the generator.
+
+# Can I make a public network for it?
+Hmm. Why?
